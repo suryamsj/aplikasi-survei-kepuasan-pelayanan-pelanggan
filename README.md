@@ -52,6 +52,7 @@ Project ini menggunakan tools dan teknologi:
 - [Bootstrap](https://getbootstrap.com/)
 - [PHP](https://www.php.net/)
 - [MYSQL](https://www.mysql.com/)
+- [Svelte French Toast](https://svelte-french-toast.com/)
 
 ## :white_check_mark: Requirements ##
 
