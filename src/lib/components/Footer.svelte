@@ -7,7 +7,7 @@
                         class="bi bi-balloon-heart-fill text-danger"
                     />
                     oleh
-                    <a href="https://suryamsj.netlify.app">Muhammad Surya J</a>
+                    <a href="https://suryamsj.vercel.app">Muhammad Surya J</a>
                 </p>
             </div>
         </div>

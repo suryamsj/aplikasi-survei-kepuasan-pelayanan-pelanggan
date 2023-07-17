@@ -1,6 +1,8 @@
+import { to_number } from "svelte/internal";
+
 // Get Total Data
 export const getTotal = (data) =>{
-    let total = eval(data);
+    let total = to_number(data);
     return total;
 }
 

@@ -1,41 +1,42 @@
 <script>
-    import { onMount } from "svelte";
+    import { enhance } from "$app/forms";
     import { getTotal, getPercentage } from "$lib/utils";
-    import { store } from "$lib/store";
-    import axios from "axios";
     import toast, { Toaster } from "svelte-french-toast";
     import BoxInset from "$lib/components/BoxInset.svelte";
     import Footer from "$lib/components/Footer.svelte";
 
-    let loading = false;
-    let total_data = 0;
-    let sangat_puas = 0;
-    let puas = 0;
-    let kurang_puas = 0;
-    let tidak_puas = 0;
+    export let data;
 
-    onMount(async () => {
-        $store = await getDataFromApi();
-        total_data = totalData($store);
-        sangat_puas = totalDataModel($store.data[0].sangat_puas, total_data);
-        puas = totalDataModel($store.data[0].puas, total_data);
-        kurang_puas = totalDataModel($store.data[0].kurang_puas, total_data);
-        tidak_puas = totalDataModel($store.data[0].tidak_puas, total_data);
-    });
-
-    // Get Data from API
-    const getDataFromApi = async () => {
-        try {
-            const response = await axios.get(
-                `http://localhost/rest_api/api/survey.php?function=select_data`
-            );
-            return response.data;
-        } catch (err) {
-            console.log(err);
-        }
+    const handleSubmit = () => {
+        return async ({ result, update }) => {
+            switch (result.type) {
+                case "success":
+                    toast.success("success", {
+                        style: "background:#d2dbee;border:2px solid #bec6d8; padding: 16px;box-shadow:5px 5px 5px rgba(0,0,0,0.1);",
+                        icon: "✅",
+                        position: "bottom-center",
+                    });
+                    break;
+                case "error":
+                    toast.error("failed", {
+                        style: "background:#d2dbee;border:2px solid #bec6d8; padding: 16px;box-shadow:5px 5px 5px rgba(0,0,0,0.1);",
+                        icon: "❌",
+                        position: "bottom-center",
+                    });
+                default:
+                    break;
+            }
+            await update();
+        };
     };
 
-    // Get Total Data
+    /**
+     * This is a function to sum all seurvey results.
+     *
+     * @param {number} data - A number param
+     * @return {number} - A good number
+     *
+     */
     const totalData = (data) => {
         let totalData =
             getTotal(data.data[0].sangat_puas) +
@@ -45,52 +46,21 @@
         return totalData;
     };
 
-    // Get Total Data / Model
+    /**
+     * This is a function to get total percentage form all survey results.
+     *
+     * @param {number} data - A number param
+     * @param {number} total - A number param
+     * @return {number} - A good number
+     *
+     */
     const totalDataModel = (data, total) => {
         let totalModel = getPercentage(getTotal(data), total);
         return totalModel;
     };
 
-    // Handle Submit
-    const handleSubmit = async (value) => {
-        try {
-            loading = true;
-            const response = await axios.post(
-                `http://localhost/rest_api/api/survey.php?function=create`,
-                new URLSearchParams({
-                    result: value,
-                })
-            );
-            if (response.data.status === 201) {
-                toast.success("success", {
-                    style: "background:#d2dbee;border:2px solid #bec6d8; padding: 16px;box-shadow:5px 5px 5px rgba(0,0,0,0.1);",
-                    icon: "✅",
-                    position: "bottom-center",
-                });
-            } else {
-                toast.error("failed", {
-                    style: "background:#d2dbee;border:2px solid #bec6d8; padding: 16px;box-shadow:5px 5px 5px rgba(0,0,0,0.1);",
-                    icon: "❌",
-                    position: "bottom-center",
-                });
-            }
-            await updateAll();
-        } catch (err) {
-            console.log(err);
-        } finally {
-            loading = false;
-        }
-    };
-
-    // Update all data
-    const updateAll = async () => {
-        $store = await getDataFromApi();
-        total_data = totalData($store);
-        sangat_puas = totalDataModel($store.data[0].sangat_puas, total_data);
-        puas = totalDataModel($store.data[0].puas, total_data);
-        kurang_puas = totalDataModel($store.data[0].kurang_puas, total_data);
-        tidak_puas = totalDataModel($store.data[0].tidak_puas, total_data);
-    };
+    $: ({ survei } = data);
+    $: total = totalData(survei);
 </script>
 
 <!-- Start Header -->
@@ -114,69 +84,61 @@
 <section class="section">
     <div class="row text-center">
         <div class="col-lg-3 col-md-6 col-12">
-            <BoxInset result={sangat_puas}>
+            <BoxInset
+                result={totalDataModel(survei.data[0].sangat_puas, total)}
+            >
                 <i class="bi-emoji-heart-eyes text-success" slot="logo" />
                 <h5 slot="title">Sangat Puas</h5>
                 <form
-                    on:submit|preventDefault={() => handleSubmit("Sangat Puas")}
+                    action="?/sangat_puas"
                     method="post"
+                    use:enhance={handleSubmit}
                 >
-                    <button
-                        type="submit"
-                        class="btn btn-outline-success w-100"
-                        disabled={loading}
-                        >{loading ? "Loading" : "Pilih"}</button
+                    <button type="submit" class="btn btn-outline-success w-100"
+                        >Pilih</button
                     >
                 </form>
             </BoxInset>
         </div>
         <div class="col-lg-3 col-md-6 col-12">
-            <BoxInset result={puas}>
+            <BoxInset result={totalDataModel(survei.data[0].puas, total)}>
                 <i class="bi-emoji-laughing text-info" slot="logo" />
                 <h5 slot="title">Puas</h5>
-                <form
-                    on:submit|preventDefault={() => handleSubmit("Puas")}
-                    method="post"
-                >
-                    <button
-                        type="submit"
-                        class="btn btn-outline-info w-100"
-                        disabled={loading}
-                        >{loading ? "Loading" : "Pilih"}</button
+                <form action="?/puas" method="post" use:enhance={handleSubmit}>
+                    <button type="submit" class="btn btn-outline-info w-100"
+                        >Pilih</button
                     >
                 </form>
             </BoxInset>
         </div>
         <div class="col-lg-3 col-md-6 col-12">
-            <BoxInset result={kurang_puas}>
+            <BoxInset
+                result={totalDataModel(survei.data[0].kurang_puas, total)}
+            >
                 <i class="bi-emoji-frown text-warning" slot="logo" />
                 <h5 slot="title">Kurang Puas</h5>
                 <form
-                    on:submit|preventDefault={() => handleSubmit("Kurang Puas")}
+                    action="?/kurang_puas"
                     method="post"
+                    use:enhance={handleSubmit}
                 >
-                    <button
-                        type="submit"
-                        class="btn btn-outline-warning w-100"
-                        disabled={loading}
-                        >{loading ? "Loading" : "Pilih"}</button
+                    <button type="submit" class="btn btn-outline-warning w-100"
+                        >Pilih</button
                     >
                 </form>
             </BoxInset>
         </div>
         <div class="col-lg-3 col-md-6 col-12">
-            <BoxInset result={tidak_puas}>
+            <BoxInset result={totalDataModel(survei.data[0].tidak_puas, total)}>
                 <i class="bi-emoji-angry text-danger" slot="logo" />
                 <h5 slot="title">Tidak Puas</h5>
                 <form
-                    on:submit|preventDefault={() => handleSubmit("Tidak Puas")}
+                    action="?/tidak_puas"
                     method="post"
+                    use:enhance={handleSubmit}
                 >
-                    <button
-                        type="submit"
-                        class="btn btn-outline-danger w-100"
-                        disabled={loading}
-                        >{loading ? "Loading" : "Pilih"}</button
+                    <button type="submit" class="btn btn-outline-danger w-100"
+                        >Pilih</button
                     >
                 </form>
             </BoxInset>
@@ -196,15 +158,22 @@
                         class="progress"
                         role="progressbar"
                         aria-label="Animated striped example"
-                        aria-valuenow={sangat_puas}
+                        aria-valuenow={totalDataModel(
+                            survei.data[0].sangat_puas,
+                            total
+                        )}
                         aria-valuemin="0"
                         aria-valuemax="100"
                     >
                         <div
                             class="progress-bar progress-bar-striped progress-bar-animated bg-success"
-                            style="width: {sangat_puas + `%`}"
+                            style="width: {totalDataModel(
+                                survei.data[0].sangat_puas,
+                                total
+                            ) + `%`}"
                         >
-                            {sangat_puas + "%"}
+                            {totalDataModel(survei.data[0].sangat_puas, total) +
+                                "%"}
                         </div>
                     </div>
                 </div>
@@ -214,15 +183,21 @@
                         class="progress"
                         role="progressbar"
                         aria-label="Animated striped example"
-                        aria-valuenow={puas}
+                        aria-valuenow={totalDataModel(
+                            survei.data[0].puas,
+                            total
+                        )}
                         aria-valuemin="0"
                         aria-valuemax="100"
                     >
                         <div
                             class="progress-bar progress-bar-striped progress-bar-animated bg-info"
-                            style="width: {puas + `%`}"
+                            style="width: {totalDataModel(
+                                survei.data[0].puas,
+                                total
+                            ) + `%`}"
                         >
-                            {puas + "%"}
+                            {totalDataModel(survei.data[0].puas, total) + "%"}
                         </div>
                     </div>
                 </div>
@@ -232,15 +207,22 @@
                         class="progress"
                         role="progressbar"
                         aria-label="Animated striped example"
-                        aria-valuenow={kurang_puas}
+                        aria-valuenow={totalDataModel(
+                            survei.data[0].kurang_puas,
+                            total
+                        )}
                         aria-valuemin="0"
                         aria-valuemax="100"
                     >
                         <div
                             class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
-                            style="width: {kurang_puas + `%`}"
+                            style="width: {totalDataModel(
+                                survei.data[0].kurang_puas,
+                                total
+                            ) + `%`}"
                         >
-                            {kurang_puas + "%"}
+                            {totalDataModel(survei.data[0].kurang_puas, total) +
+                                "%"}
                         </div>
                     </div>
                 </div>
@@ -250,15 +232,22 @@
                         class="progress"
                         role="progressbar"
                         aria-label="Animated striped example"
-                        aria-valuenow={tidak_puas}
+                        aria-valuenow={totalDataModel(
+                            survei.data[0].tidak_puas,
+                            total
+                        )}
                         aria-valuemin="0"
                         aria-valuemax="100"
                     >
                         <div
                             class="progress-bar progress-bar-striped progress-bar-animated bg-danger"
-                            style="width: {tidak_puas + `%`}"
+                            style="width: {totalDataModel(
+                                survei.data[0].tidak_puas,
+                                total
+                            ) + `%`}"
                         >
-                            {tidak_puas + "%"}
+                            {totalDataModel(survei.data[0].tidak_puas, total) +
+                                "%"}
                         </div>
                     </div>
                 </div>
